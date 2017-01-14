@@ -54,7 +54,7 @@ function startApp() {
     }
 
     function showHomeView(){
-
+        showView("viewHome")
     }
 
     function showLoginView() {
@@ -68,7 +68,8 @@ function startApp() {
     }
     
     function showListView() {
-        $('#viewAds').empty();
+        showView("viewAds")
+        $('#ads').empty();
         $.ajax({
             method: "GET",
             url: kinveyBaseUrl + "appdata/" + kinveyAppId + "/items",
@@ -95,11 +96,16 @@ function startApp() {
                 tr.appendTo(table);
             }
             $("#viewAds").show();
-            $("#viewAds").append(table);
+            $("#ads").append(table);
         }
         function displayTableRow(tr,item){
             //console.dir(item)
             let links = [];
+            let readLink = $("<a href='#'>[Read More]</a>")
+                .click(function(){
+                    readMoreView(item._id)
+                });
+            links.push(readLink);
             if(item._acl.creator==sessionStorage.getItem("userId")){
                 let deleteLink = $("<a href='#'>[Delete]</a>")
                     .click(function(){
@@ -109,6 +115,7 @@ function startApp() {
                     .click(function(){
                         loadItemForEdit(item._id);
                     });
+                links.push(" ");
                 links.push(deleteLink);
                 links.push(" ");
                 links.push(editLink);
@@ -219,7 +226,8 @@ function startApp() {
             description: $("#formCreateAd textarea[name=description]").val(),
             publisher: sessionStorage.getItem("username"),
             date: $("#formCreateAd input[name=datePublished]").val(),
-            price: $("#formCreateAd input[name=price]").val()
+            price: $("#formCreateAd input[name=price]").val(),
+            image: $("#formCreateAd input[name=image]").val()
         });
         $.ajax({
             method: "POST",
@@ -237,7 +245,6 @@ function startApp() {
             showInfo("success created")
 
         }
-        console.log(body)
     }
 
     function loadItemForEdit(itemId) {
@@ -290,6 +297,44 @@ function startApp() {
 
         }
     }
+
+    let myFunc = (function () {
+        let count = 1;
+        return function () {
+            return count += 1;
+        }
+    })();
+
+    function readMoreView(itemId){
+        $("#formMore").empty();
+        $.ajax({
+            method:"GET",
+            url:kinveyBaseUrl+"appdata/"+kinveyAppId+"/items/"+itemId,
+            headers:{"Authorization":"Kinvey "+sessionStorage.getItem("authtoken")},
+            success:successReadMore,
+            error:getError
+        });
+
+        function successReadMore(data) {
+
+            $("#viewAds").hide();
+            showView("viewMore");
+            let image = $(`<img src='${data.image}'/>`);
+            $("#formMore")
+                .append(image)
+                .append($("<p>Title:</p>"))
+                .append($(`<h2>${data.title}</h2>`))
+                .append($("<p>Description:</p>"))
+                .append($(`<p>${data.description}</p>`))
+                .append($("<p>Publisher:</p>"))
+                .append($(`<p>${sessionStorage.getItem("username")}</p>`))
+                .append($("<p>Data:</p>"))
+                .append($(`<p>${data.date}</p>`))
+                .append($(`<p>Views:${myFunc()}</p>`))
+        }
+    }
+
+
     function getError(response) {
         let errorMsg = JSON.stringify(response);
         if (response.readyState === 0)
